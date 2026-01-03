@@ -14,7 +14,8 @@ import {
     DEFAULT_MODEL_CONFIGS, 
     GROUND_TRACK_CONFIGS,
     SKYBOX_BASE_URL,
-    SKYBOX_FACES
+    SKYBOX_FACES,
+    IBL_BASE_URL
 } from './constants.js';
 
 /**
@@ -63,9 +64,12 @@ export class Application {
         const mainShader = await this._loadShader('src/shaders/main.wgsl');
         const skyboxShader = await this._loadShader('src/shaders/skybox.wgsl');
         
+        // HDRテクスチャ読み込み
+        const envTexture = await this.textureLoader.loadHDR(IBL_BASE_URL);
+        
         // レンダラー初期化
         this.renderer = new Renderer(this.gpu);
-        this.renderer.initMainPipeline(mainShader, this.gpu.format);
+        this.renderer.initMainPipeline(mainShader, this.gpu.format, envTexture);
         
         // デフォルトテクスチャ
         const defaultTexture = this.textureLoader.createDefaultTexture();
@@ -93,7 +97,8 @@ export class Application {
             this.textureLoader,
             this.renderer.mainPipeline,
             this.renderer.sampler,
-            defaultTexture
+            defaultTexture,
+            envTexture
         );
         
         // モデル読み込み

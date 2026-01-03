@@ -183,6 +183,115 @@ export class TextureLoader {
     }
 
     /**
+     * HDRテクスチャを読み込む（latlong形式）
+     * @param {string} url - HDR画像URL
+     * @returns {Promise<GPUTexture>}
+     */
+    async loadHDR(url) {
+        if (this.cache.has(url)) {
+            return this.cache.get(url);
+        }
+
+        const arrayBuffer = await fetch(url).then(r => r.arrayBuffer());
+        const hdrData = this._parseHDR(arrayBuffer);
+        
+        const texture = this.gpu.createTexture({
+            size: [hdrData.width, hdrData.height],
+            format: 'rgba16float',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+        });
+        
+        this.gpu.writeTexture(
+            { texture },
+            hdrData.data,
+            { bytesPerRow: hdrData.width * 8 }, // 16-bit float per channel * 4 channels
+            [hdrData.width, hdrData.height]
+        );
+        
+        this.cache.set(url, texture);
+        return texture;
+    }
+
+    /**
+     * HDRファイルをパース（Radiance HDR形式）
+     * @param {ArrayBuffer} arrayBuffer
+     * @returns {{width: number, height: number, data: Float32Array}}
+     * @private
+     */
+    _parseHDR(arrayBuffer) {
+        const view = new Uint8Array(arrayBuffer);
+        let offset = 0;
+
+        // ヘッダー確認
+        const header = new TextDecoder().decode(view.slice(0, 10));
+        if (header !== '#?RADIANCE') {
+            throw new Error('Invalid HDR file format');
+        }
+        offset = 10;
+
+        // メタデータスキップ
+        while (offset < view.length) {
+            if (view[offset] === 10 && view[offset + 1] === 10) { // \n\n
+                offset += 2;
+                break;
+            }
+            offset++;
+        }
+
+        // 解像度行解析
+        const resLine = new TextDecoder().decode(view.slice(offset, offset + 32));
+        const resMatch = resLine.match(/-Y (\d+) \+X (\d+)/);
+        if (!resMatch) {
+            throw new Error('Invalid HDR resolution line');
+        }
+
+        const height = parseInt(resMatch[1]);
+        const width = parseInt(resMatch[2]);
+
+        offset += resLine.indexOf('\n') + 1;
+
+        // RGBデータ読み込み（Run-Length Encoding）
+        const data = new Float32Array(width * height * 4);
+        let pixelIndex = 0;
+
+        while (offset < view.length && pixelIndex < width * height) {
+            const code = view[offset++];
+
+            if (code === 1) {
+                // 次の4バイトはRGBE
+                const r = view[offset++];
+                const g = view[offset++];
+                const b = view[offset++];
+                const e = view[offset++];
+                const f = Math.pow(2.0, e - 128);
+                
+                data[pixelIndex * 4 + 0] = (r / 255.0) * f;
+                data[pixelIndex * 4 + 1] = (g / 255.0) * f;
+                data[pixelIndex * 4 + 2] = (b / 255.0) * f;
+                data[pixelIndex * 4 + 3] = 1.0;
+                pixelIndex++;
+            } else if (code > 1 && code <= 128) {
+                // RLE圧縮データ
+                const r = view[offset++];
+                const g = view[offset++];
+                const b = view[offset++];
+                const e = view[offset++];
+                const f = Math.pow(2.0, e - 128);
+
+                for (let i = 0; i < code; i++) {
+                    data[pixelIndex * 4 + 0] = (r / 255.0) * f;
+                    data[pixelIndex * 4 + 1] = (g / 255.0) * f;
+                    data[pixelIndex * 4 + 2] = (b / 255.0) * f;
+                    data[pixelIndex * 4 + 3] = 1.0;
+                    pixelIndex++;
+                }
+            }
+        }
+
+        return { width, height, data };
+    }
+
+    /**
      * キャッシュをクリア
      */
     clearCache() {

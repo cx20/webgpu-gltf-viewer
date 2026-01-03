@@ -114,7 +114,11 @@ export class GroundTrack {
                 { binding: 0, resource: { buffer: this.uniformBuffer } },
                 { binding: 1, resource: { buffer: this.jointMatricesBuffer } },
                 { binding: 2, resource: sampler },
-                { binding: 3, resource: defaultTexture.createView() }
+                { binding: 3, resource: defaultTexture.createView() },
+                { binding: 4, resource: defaultTexture.createView() },
+                { binding: 5, resource: defaultTexture.createView() },
+                { binding: 6, resource: defaultTexture.createView() },
+                { binding: 7, resource: defaultTexture.createView() }
             ]
         });
     }

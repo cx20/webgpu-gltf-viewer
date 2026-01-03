@@ -104,12 +104,13 @@ export class ModelLoader {
      * @param {GPURenderPipeline} pipeline
      * @param {GPUSampler} sampler
      * @param {GPUTexture} defaultTexture
+     * @param {GPUTexture} envTexture - 環境テクスチャ
      */
-    constructor(gpuContext, textureLoader, pipeline, sampler, defaultTexture) {
+    constructor(gpuContext, textureLoader, pipeline, sampler, defaultTexture, envTexture) {
         this.gpu = gpuContext;
         this.textureLoader = textureLoader;
         this.meshFactory = new MeshFactory(gpuContext, textureLoader);
-        this.instanceFactory = new PrimitiveInstanceFactory(gpuContext, pipeline, sampler);
+        this.instanceFactory = new PrimitiveInstanceFactory(gpuContext, pipeline, sampler, envTexture);
         this.defaultTexture = defaultTexture;
         this.gltfLoader = new GLTFLoader();
     }
