@@ -6,7 +6,7 @@
 export const MAX_JOINTS = 180;
 
 /** Uniformバッファのサイズ（バイト） */
-export const UNIFORM_BUFFER_SIZE = 304;
+export const UNIFORM_BUFFER_SIZE = 368; // 16バイトアラインメントのため末尾をパディング
 
 /** ジョイントマトリックスバッファのサイズ（バイト） */
 export const JOINT_MATRICES_BUFFER_SIZE = MAX_JOINTS * 64;
@@ -52,6 +52,8 @@ export const DEFAULT_BASE_COLOR = [1, 1, 1, 1];
 export const SKYBOX_BASE_URL = 'https://raw.githubusercontent.com/mrdoob/three.js/3c13d929f8d9a02c89f010a487e73ff0e57437c4/examples/textures/cube/skyboxsun25deg/';
 export const SKYBOX_FACES = ['px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg'];
 
+export const IBL_BASE_URL = 'https://cx20.github.io/gltf-test/textures/hdr/papermill.hdr';
+
 /** デフォルトのモデル設定 */
 export const DEFAULT_MODEL_CONFIGS = [
     {
@@ -77,6 +79,32 @@ export const DEFAULT_MODEL_CONFIGS = [
         url: "https://raw.githubusercontent.com/BabylonJS/Exporters/d66db9a7042fef66acb62e1b8770739463b0b567/Maya/Samples/glTF%202.0/T-Rex/trex.gltf"
     }
 ];
+/*
+export const DEFAULT_MODEL_CONFIGS = [
+    {
+        name: "Avocado",
+        scale: 30.0,
+        rotation: [0, Math.PI / 2, 0],
+        position: [0, 0, -2],
+        url: "https://cx20.github.io/gltf-test/tutorialModels/Avocado/glTF/Avocado.gltf"
+    },
+    {
+        name: "BoomBox",
+        scale: 100.0,
+        rotation: [0, Math.PI / 2, 0],
+        position: [0, 0, 0],
+        url: "https://cx20.github.io/gltf-test/tutorialModels/BoomBox/glTF/BoomBox.gltf",
+        preferredAnimation: "Run"
+    },
+    {
+        name: "WaterBottle",
+        scale: 10.0,
+        rotation: [0, Math.PI / 2, 0],
+        position: [0, 0, 3],
+        url: "https://cx20.github.io/gltf-test/tutorialModels/WaterBottle/glTF/WaterBottle.gltf"
+    }
+];
+*/
 
 /** グラウンドトラックの設定 */
 export const GROUND_TRACK_CONFIGS = [

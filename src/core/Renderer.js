@@ -26,15 +26,21 @@ export class Renderer {
      * メインパイプラインを初期化
      * @param {string} shaderCode - WGSLシェーダーコード
      * @param {string} format - キャンバスフォーマット
+     * @param {GPUTexture} envTexture - 環境テクスチャ
      */
-    initMainPipeline(shaderCode, format) {
+    initMainPipeline(shaderCode, format, envTexture) {
+        this.envTexture = envTexture;
         // バインドグループレイアウト
         const bindGroupLayout = this.gpu.device.createBindGroupLayout({
             entries: [
                 { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: 'uniform' } },
                 { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
                 { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
-                { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: {} }
+                { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+                { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+                { binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+                { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: 'float' } },
+                { binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: {} }
             ]
         });
         
@@ -155,8 +161,13 @@ export class Renderer {
                 const mesh = model.meshes[node.meshIndex];
                 const hasSkinning = mesh.primitives.some(p => p.hasSkinning);
                 
-                // スキニングありの場合はモデル行列を単位行列に
-                const modelMatrix = hasSkinning ? mat4.create() : node.worldMatrix;
+                // スキニングを掠粗然と計算して正しい法線配列を推計
+                let modelMatrix = node.worldMatrix;
+                if (hasSkinning) {
+                    // スキニングありの場合、スキニングを適用した後の法線を推計
+                    // スキニングは长方形を正しく保持しない失われた位置で突然に変換をしなかった場合があるので、その場合も最後の結果を推計するため流の法線構成を求める
+                    modelMatrix = mat4.create();
+                }
                 
                 mat4.invert(this.normalMatrix, modelMatrix);
                 mat4.transpose(this.normalMatrix, this.normalMatrix);
@@ -183,8 +194,8 @@ export class Renderer {
     _drawPrimitive(renderPass, instance, modelMatrix, skin) {
         const { primitive, uniformBuffer, jointMatricesBuffer, bindGroup } = instance;
         
-        // Uniformデータ作成
-        const uniforms = new ArrayBuffer(304);
+        // Uniformデータ作成（WGSL構造体サイズ 368 バイト）
+        const uniforms = new ArrayBuffer(368);
         const floatView = new Float32Array(uniforms);
         const uintView = new Uint32Array(uniforms);
         
@@ -197,6 +208,16 @@ export class Renderer {
         uintView[72] = (primitive.hasSkinning && skin) ? 1 : 0;
         uintView[73] = primitive.hasTexture ? 1 : 0;
         uintView[74] = primitive.hasNormals ? 1 : 0;
+        uintView[75] = primitive.hasMetallicRoughnessTexture ? 1 : 0;
+        floatView[76] = primitive.metallicFactor;
+        floatView[77] = primitive.roughnessFactor;
+        floatView[78] = primitive.normalScale;
+        uintView[79] = primitive.hasNormalTexture ? 1 : 0;
+        floatView[80] = primitive.emissiveFactor[0];
+        floatView[81] = primitive.emissiveFactor[1];
+        floatView[82] = primitive.emissiveFactor[2];
+        floatView[83] = primitive.emissiveFactor[3] ?? 1;
+        uintView[84] = primitive.hasEmissiveTexture ? 1 : 0;
         
         this.gpu.writeBuffer(uniformBuffer, 0, uniforms);
         
